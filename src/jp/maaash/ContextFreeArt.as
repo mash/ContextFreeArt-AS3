@@ -4,6 +4,8 @@ package jp.maaash {
     import jp.maaash.contextfreeart.Compiler;
     import jp.maaash.contextfreeart.Renderer;
     public class ContextFreeArt {
+        private var renderer :Renderer;
+
         public function ContextFreeArt( cfdg_text :String, container :DisplayObjectContainer ) {
             var t :Tokenizer = new Tokenizer;
             var tokens :Array = t.tokenize( cfdg_text );
@@ -13,9 +15,13 @@ package jp.maaash {
 
             logger("compiled: ",compiled);
 
-            var r :Renderer = new Renderer( container.width, container.height );
-            r.clearQueue();
-            r.render( compiled, container );
+            renderer = new Renderer( container.width, container.height );
+            renderer.clearQueue();
+            renderer.render( compiled, container );
+        }
+
+        public function tick() :void {
+            renderer.tick();
         }
 
 		private function logger(... args) :void {
