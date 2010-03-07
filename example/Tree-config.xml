@@ -1,0 +1,20 @@
+<flex-config>
+	<compiler>
+		<debug>true</debug>
+		<incremental>true</incremental>
+		<source-path>
+			<path-element>/home/mash/github/ContextFreeArtAS3/src/</path-element>
+            <path-element>/home/mash/github/as3rails2u/src</path-element>
+		</source-path>
+<!-- 		<library-path append="true"> -->
+<!-- 			<path-element>/home/homepage/work/Wonderfl/swc/as3corelib-.92.1/lib</path-element> -->
+<!--         </library-path> -->
+	</compiler>
+	<output>Tree.swf</output>
+	<default-size>
+		<width>640</width>
+		<height>480</height>
+	</default-size>
+	<default-frame-rate>30</default-frame-rate>
+	<default-background-color>0xFFFFFF</default-background-color>
+</flex-config>
