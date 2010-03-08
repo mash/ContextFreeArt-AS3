@@ -17,7 +17,7 @@ package jp.maaash.contextfreeart {
         private var compiled :Object;
         private var container :DisplayObjectContainer;
         private var isRendering :Boolean = false;
-        private var maxThreads :int = 10;
+        private var maxThreads :int = 1000;
 
 		public function Renderer( _width :Number = 0, _height :Number = 0 ){
             if ( _width  ) { width  = _width;  }
@@ -40,7 +40,7 @@ package jp.maaash.contextfreeart {
 
         public function tick() :void {
 
-            logger("[tick]queue.length: "+queue.length);
+            //logger("[tick]queue.length: "+queue.length);
 
             if( queue.length > 0 ){
                 isRendering = true;
@@ -54,25 +54,25 @@ package jp.maaash.contextfreeart {
                 //var end = new Date();
       
                 //setTimeout( Renderer.tick, 2*(end-start) );
-                setTimeout( tick, 100 );
+                setTimeout( tick, 30 );
             }
 
             center();
         }
 
         private function center() :void {
-            var rect :Rectangle = container.getBounds( container );
+            var rect :Rectangle = container.getRect( container );
             var mtx  :Matrix    = new Matrix;
 
             if ( rect.width > width || rect.height > height ) {
                 // resize
-                centeringScale = Math.min( width / rect.width, height / rect.height );
+                centeringScale = Math.min( width / rect.width, height / rect.height ) * 0.9;
 
-                logger("[center]centeringScale: ",centeringScale);
+                //logger("[center]centeringScale: ",centeringScale); // 0.9, to make it un-sensitive
 
                 mtx.scale( centeringScale, centeringScale );
             }
-            logger("[center]mtx,rect: ",mtx,rect);
+            //logger("[center]mtx,rect: ",mtx,rect);
 
             // centering
             mtx.translate(
@@ -93,8 +93,8 @@ package jp.maaash.contextfreeart {
             //logger("[drawRule]mtx: ",mtx);
 
             // When things get too small, we can stop rendering.
-            // Too small, in this case, means less than half a pixel.
-            if( Math.abs( mtx.a ) * globalScale * centeringScale < .5 && Math.abs( mtx.b ) * globalScale * centeringScale < .5 ){
+            // Too small, in this case, means less than a pixel.
+            if( Math.abs( mtx.a ) * globalScale * centeringScale < 1 && Math.abs( mtx.b ) * globalScale * centeringScale < 1 ){
                 logger("[drawRule]return");
                 return;
             }
@@ -105,7 +105,10 @@ package jp.maaash.contextfreeart {
 
         private function chooseShape( ruleName :String ) :Object {
             // Choose which rule to go with...
+            //logger("[chooseShape]ruleName: "+ruleName);
+
             var choices :Array = compiled[ ruleName ];
+            if ( ! choices ) { throw("no rule found for "+ruleName); }
 
             var sum :Number = 0;
             for( var i :int=0; i<choices.length; i++) {
@@ -129,17 +132,17 @@ package jp.maaash.contextfreeart {
 
         private function drawShape( shape :Object, mtx :Matrix, color :Object, priority :Number = 0 ) :void {
 
-            logger("[drawShape]shape: ",shape, mtx );
+            //logger("[drawShape]shape: ",shape, mtx );
 
             var len :int = shape.draw.length;
             for ( var i :int = 0; i < len; i++ ) {
-                var item :Object = shape.draw[ i ];
+                var adj :Adjustment = shape.draw[ i ];
 
                 var localTransform :Matrix = mtx.clone();
-                localTransform             = adjustTransform( item, localTransform );
-                var localColor :Object     = adjustColor( color, item );
+                localTransform             = adjustTransform( adj, localTransform );
+                var localColor :Object     = adjustColor( adj, color );
 
-                switch( item.shape ){
+                switch( adj.name ){
                     case "CIRCLE":
                         drawCIRCLE( localTransform, localColor );
                         break;
@@ -153,24 +156,22 @@ package jp.maaash.contextfreeart {
                         break;
                         
                     default:
-                        var args :Array = [ item.shape, localTransform, localColor ];
+                        var args :Array = [ adj.name, localTransform, localColor ];
                           
                         if( priority == 1 ){ queue.unshift( args ); }
                         else{ queue.push( args ); }
                         
                         break;
-                }    
+                }
             }
 
         }
 
         private function drawCIRCLE( transform :Matrix, color :Object ) :void {
             var sh :Shape = new Shape;
-            var g  :Graphics = sh.graphics;
-            g.beginFill.apply( null, colorToRgba( color ) );
-            g.lineStyle( 1, 0x000000 );
-            g.drawCircle( 0, 0, globalScale * 0.5 );
-
+            sh.graphics.beginFill.apply( null, colorToRgba( color ) );
+            //g.lineStyle( 1, 0x000000 );
+            sh.graphics.drawCircle( 0, 0, globalScale * 0.5 );
             sh.transform.matrix = transform;
 
             container.addChild( sh );
@@ -178,10 +179,9 @@ package jp.maaash.contextfreeart {
 
         private function drawSQUARE( transform :Matrix, color :Object ) :void {
             var sh :Shape = new Shape;
-            var g  :Graphics = sh.graphics;
-            g.beginFill.apply( null, colorToRgba( color ) );
-            g.lineStyle( 1, 0x000000 );
-            g.drawRect( - globalScale * 0.5, - globalScale * 0.5, globalScale, globalScale );
+            sh.graphics.beginFill.apply( null, colorToRgba( color ) );
+            //g.lineStyle( 1, 0x000000 );
+            sh.graphics.drawRect( - globalScale * 0.5, - globalScale * 0.5, globalScale, globalScale );
 
             sh.transform.matrix = transform;
 
@@ -190,89 +190,79 @@ package jp.maaash.contextfreeart {
 
         private function drawTRIANGLE( transform :Matrix, color :Object ) :void {
             var sh :Shape = new Shape;
-            var g  :Graphics = sh.graphics;
-            g.beginFill.apply( null, colorToRgba( color ) );
-            g.lineStyle( 1, 0x000000 );
+            sh.graphics.beginFill.apply( null, colorToRgba( color ) );
+            //g.lineStyle( 1, 0x000000 );
 
             // 1,2,sqrt(3)
-            g.drawTriangles(
+            sh.graphics.drawTriangles(
                             Vector.<Number>([
                                              -globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
                                              +globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
                                              0,                  - Math.sqrt(3) * globalScale / 3]),
                             Vector.<int>([0,1,2])
                             );
+
+            sh.transform.matrix = transform;
+
             container.addChild( sh );
         }
 
         private function drawBackground() :void {
             if ( compiled.background ) {
-                var colorAdj :Object  = compiled.background;
+                var colorAdj :Adjustment = compiled.background;
                 var backgroundColor :Object = { h:0, s:0, b:1, a:1 };
-                var color :Object = adjustColor( backgroundColor, colorAdj );
+                var color :Object = adjustColor( colorAdj, backgroundColor );
 
                 var sh :Shape = new Shape;
-                var gr :Graphics = sh.graphics;
                 //gr.beginFill( );
-                gr.drawRect( 0, 0, width, height );
+                sh.graphics.drawRect( 0, 0, width, height );
             }
         }
 
         // order: move rotate scale
-        private function adjustTransform( adjs :Object, base :Matrix ) :Matrix {
+        private function adjustTransform( adjs :Adjustment, base :Matrix ) :Matrix {
 
             //logger("[adjustTransform][0]adjs: ",adjs," base: ",base);
 
             var mtx :Matrix = new Matrix;
-            mtx.concat( base );
 
-            // Tranalsation
-            var x :Number =  getKeyValue( ["x"], 0, adjs );
-            var y :Number = -getKeyValue( ["y"], 0, adjs );
-
-            if ( x != 0 || y != 0 ) {
-                var mtxT :Matrix = new Matrix;
-                var point :Point = new Point( x * globalScale, y * globalScale );
-                point = mtxT.deltaTransformPoint( point );
-                mtxT.translate( point.x, point.y );
-                mtxT.concat( mtx );
-                mtx = mtxT;
-            }
-
-            // Rotation
-            var r :Number = getKeyValue( ["r", "rotate"], 0, adjs );
-            if ( r != 0 ) {
-                var mtxR :Matrix = new Matrix;
-                mtxR.rotate( - Math.PI * r / 180 );
-                mtxR.concat( mtx );
-                mtx = mtxR;
+            // Flip around a line through the origin;
+            if ( adjs.flipDefined ){
+                var flip :Number = adjs.flip;
+                // Flip 0 means to flip along the X axis. Flip 90 means to flip along the Y axis.
+                // That's why the flip vector (vX, vY) is Pi/2 radians further along than expected. 
+                var vX :Number   = Math.cos( -2*Math.PI * flip / 360 );
+                var vY :Number   = Math.sin( -2*Math.PI * flip / 360 );
+                var norm :Number = 1/(vX*vX + vY*vY);
+                //var flip :Matrix = new Matrix((vX*vX-vY*vY)/norm, 2*vX*vY/norm, 2*vX*vY/norm, (vY*vY-vX*vX)/norm, 0, 0);
+                mtx.a = (vX*vX-vY*vY)/norm;
+                mtx.b = 2*vX*vY/norm;
+                mtx.c = 2*vX*vY/norm;
+                mtx.d = (vY*vY-vX*vX)/norm;
             }
 
             // Scaling
-            var s :* = getKeyValue( ["s", "size"], 1, adjs );
-            if ( typeof(s) == "number" ) { s = [s,s]; }
-            if ( s && s.length==2 && ((s[0] != 1) || (s[1] != 1)) ) {
-                //var scale :Array = toAffineTransformation(s[0], 0, 0, s[1], 0, 0 );
-                //mtx = compose( mtx, scale );
-                var mtxS :Matrix = new Matrix;
-                mtxS.scale( s[0], s[1] );
-                mtxS.concat( mtx );
-                mtx = mtxS;
+            var sizeX :Number = adjs.sizeX;
+            var sizeY :Number = adjs.sizeY;
+            if ( sizeX || sizeY ) {
+                mtx.scale( sizeX, sizeY );
             }
 
-            // Flip around a line through the origin;
-            var f :* = getKeyValue( ["f", "flip"], null, adjs );
-            if( f != null ){
-                // Flip 0 means to flip along the X axis. Flip 90 means to flip along the Y axis.
-                // That's why the flip vector (vX, vY) is Pi/2 radians further along than expected. 
-                var vX :Number   = Math.cos( -2*Math.PI * f/360 );
-                var vY :Number   = Math.sin( -2*Math.PI * f/360 );
-                var norm :Number = 1/(vX*vX + vY*vY);
-                //var flip :Array = toAffineTransformation((vX*vX-vY*vY)/norm, 2*vX*vY/norm, 2*vX*vY/norm, (vY*vY-vX*vX)/norm, 0, 0);
-                var flip :Matrix = new Matrix((vX*vX-vY*vY)/norm, 2*vX*vY/norm, 2*vX*vY/norm, (vY*vY-vX*vX)/norm, 0, 0);
-                flip.concat( mtx );
-                mtx = flip;
+            // Rotation
+            var r :Number = adjs.rotate;
+            if ( r != 0 ) {
+                mtx.rotate( - Math.PI * r / 180 );
             }
+
+            // Tranalsation
+            var x :Number =  adjs.x;
+            var y :Number = -adjs.y;
+            if ( x != 0 || y != 0 ) {
+                var point :Point = new Point( x * globalScale, y * globalScale );
+                mtx.translate( point.x, point.y );
+            }
+
+            mtx.concat( base );
 
             //logger("[adjustTransform][9]mtx: ",mtx);
             
@@ -289,6 +279,7 @@ package jp.maaash.contextfreeart {
         // brightness: [0,1] default 1
         // alpha: [0,1] default 1
         private function hsl2rgb(h :Number, s :Number, l :Number, a :Number) :Array {
+
             if (h == 360){ h = 0;}
 
             //
@@ -342,24 +333,20 @@ package jp.maaash.contextfreeart {
             return [ (r * 256*256 + g * 256 + b), a ];
         }
 
-        private function toAffineTransformation( a :Number, b :Number, c :Number, d :Number, x :Number, y :Number ) :Array {
-            return [ [a,b,x], [c,d,y], [0,0,1] ];
-        }
-
         // hsba to hsba
-        private function adjustColor( color :Object, adjustments :Object ) :Object {
+        private function adjustColor( adjs :Adjustment, color :Object ) :Object {
             // See http://www.contextfreeart.org/mediawiki/index.php/Shape_adjustments
             var newColor :Object = { h: color.h, s: color.s, b: color.b, a: color.a };
-            
+
             // Add num to the drawing hue value, modulo 360 
-            newColor.h += getKeyValue( ["h", "hue"], 0, adjustments );
+            newColor.h += adjs.hue;
             newColor.h %= 360;
-            
+
             var adj :Object = {};
-            adj.s = getKeyValue( ["sat", "saturation"], 0, adjustments )
-            adj.b = getKeyValue( ["b", "brightness"], 0, adjustments )
-            adj.a = getKeyValue( ["a", "alpha"], 0, adjustments )
-            
+            adj.s = adjs.saturation;
+            adj.b = adjs.brightness;
+            adj.a = adjs.alpha;
+
             // If adj<0 then change the drawing [blah] adj% toward 0.
             // If adj>0 then change the drawing [blah] adj% toward 1. 
             for( var key :String in adj ) {
@@ -373,28 +360,12 @@ package jp.maaash.contextfreeart {
             return newColor;
         }
 
-        // Used within a function to get an synonym'ed arguments value, or supply a default.
-        // For example:
-        //   var hue = getKeyValue( ["h", "hue"], 0, args );
-        //   var x = getKeyValue( ["x"], 1, args );
-        //
-        private function getKeyValue( possibleVariableNames :Array, defaultValue :*, argList :Object ) :* {
-            for( var i :int=0; i<=possibleVariableNames.length-1; i++) {
-                var name :String = possibleVariableNames[i];
-                if( typeof(argList[name]) != "undefined" ) {
-                    return argList[name];
-                }
-            }
-  
-            return defaultValue;
-        }
-
         public function clearQueue() :void {
             queue = new Array;
         }
 
 		private function logger(... args) :void {
-			if ( 1 ) {
+			if ( 0 ) {
 				return; 
 			}
 			log.apply(null, (new Array("[Renderer]", this)).concat(args));

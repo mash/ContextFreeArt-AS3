@@ -1,5 +1,6 @@
 package jp.maaash.contextfreeart.state {
     import jp.maaash.contextfreeart.Compiler;
+    import jp.maaash.contextfreeart.Adjustment;
 
 	public class Shape extends AbstractArgument {
         private var name :String;
@@ -11,10 +12,10 @@ package jp.maaash.contextfreeart.state {
 		}
 
         override protected function onDone( obj :Object ) :Array {
-            var shape :Object = { shape: name };
-            for( var key :String in obj ){
-                shape[key] = obj[key];
-            }
+            trace(this + ".onDone(obj :Object ) : " + obj );
+            var shape :Adjustment = new Adjustment();
+            shape.name = name;
+            shape.fill( obj );
             
             // We are always adding to the lastest rule we've created.
             var last :int = compiler.compiled[ ruleName ].length - 1;
