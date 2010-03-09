@@ -1,0 +1,14 @@
+implemented
+* startshape
+* background
+* rules, randomness, weights
+* basic adjustments
+
+not implemented yet (somebody please!)
+* ordered adjustments
+* comments in cfdg
+* expressions
+* paths
+* tile
+* loops
+* performance improvement
