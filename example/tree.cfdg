@@ -1,0 +1,10 @@
+startshape Tree
+rule Tree {
+    CIRCLE { s .5 1.2 }
+    Tree { s .95 y .3 r 3}
+}
+rule Tree .2 { 
+    Tree { flip 90 } }
+rule Tree .2 { 
+    Tree { r 10 } 
+    Tree { r -30 s .6} }

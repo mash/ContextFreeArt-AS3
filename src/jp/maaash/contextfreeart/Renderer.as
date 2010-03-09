@@ -2,22 +2,26 @@ package jp.maaash.contextfreeart {
     import flash.display.DisplayObjectContainer;
     import flash.display.Shape;
     import flash.display.Graphics;
+    import flash.events.TimerEvent;
     import flash.geom.Matrix;
     import flash.geom.Point;
     import flash.geom.Rectangle;
-    import flash.utils.setTimeout;
+    import flash.utils.Timer;
 
 	public class Renderer{
         private var width  :Number = 640;
         private var height :Number = 480;
         private var globalScale :Number = 300;
-        private var centeringScale :Number = 1;
+
+        private var centeringScale  :Number = 1;
+        private var centeringMatrix :Matrix = new Matrix;
 
         private var queue :Array;
         private var compiled :Object;
         private var container :DisplayObjectContainer;
         private var isRendering :Boolean = false;
         private var maxThreads :int = 1000;
+        private var tickTimer :Timer;
 
 		public function Renderer( _width :Number = 0, _height :Number = 0 ){
             if ( _width  ) { width  = _width;  }
@@ -33,54 +37,49 @@ package jp.maaash.contextfreeart {
             if ( ! queue ) { queue = new Array; }
 
             drawBackground();
-            // setupEventHandlers
             draw();
-            tick();
+
+            tickTimer = new Timer( 30 );
+            tickTimer.addEventListener( TimerEvent.TIMER, tick );
+            tickTimer.start();
         }
 
-        public function tick() :void {
-
-            //logger("[tick]queue.length: "+queue.length);
+        public function tick( e :TimerEvent = null ) :void {
 
             if( queue.length > 0 ){
                 isRendering = true;
-                //var start = new Date();
+
                 var concurrent :int = Math.min( queue.length - 1, maxThreads );
+
+                logger("[tick]concurrent: "+concurrent);
       
                 for ( var i :int=0; i <= concurrent; i++ ) {
                     var args :Array = queue.shift();
                     drawRule.apply( null, args );
                 }
-                //var end = new Date();
-      
-                //setTimeout( Renderer.tick, 2*(end-start) );
-                setTimeout( tick, 30 );
+
             }
 
             center();
         }
 
         private function center() :void {
-            var rect :Rectangle = container.getRect( container );
-            var mtx  :Matrix    = new Matrix;
+            // if the image exceeds the visible frame, transform image
+            if ( container.width > width || container.height > height ) {
 
-            if ( rect.width > width || rect.height > height ) {
+                var rect :Rectangle = container.getRect( container );
+
                 // resize
-                centeringScale = Math.min( width / rect.width, height / rect.height ) * 0.9;
+                centeringScale    = Math.min( width / rect.width, height / rect.height );
+                centeringMatrix.a = centeringMatrix.d = centeringScale;
 
-                //logger("[center]centeringScale: ",centeringScale); // 0.9, to make it un-sensitive
+                // centering
+                centeringMatrix.tx         = width /2 - (rect.left + rect.right ) * centeringScale/2;
+                centeringMatrix.ty         = height/2 - (rect.top  + rect.bottom) * centeringScale/2;
+                container.transform.matrix = centeringMatrix;
 
-                mtx.scale( centeringScale, centeringScale );
+                //logger("[center]mtx,rect,container: ",centeringMatrix,rect,container);
             }
-            //logger("[center]mtx,rect: ",mtx,rect);
-
-            // centering
-            mtx.translate(
-                          width /2 - (rect.left + rect.right ) * centeringScale/2,
-                          height/2 - (rect.top  + rect.bottom) * centeringScale/2 );
-
-            container.transform.matrix = mtx;
-
         }
 
         private function draw() :void {
@@ -95,7 +94,7 @@ package jp.maaash.contextfreeart {
             // When things get too small, we can stop rendering.
             // Too small, in this case, means less than a pixel.
             if( Math.abs( mtx.a ) * globalScale * centeringScale < 1 && Math.abs( mtx.b ) * globalScale * centeringScale < 1 ){
-                logger("[drawRule]return");
+                //logger("[drawRule]return");
                 return;
             }
 
