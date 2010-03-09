@@ -1,6 +1,7 @@
 package jp.maaash.contextfreeart {
     import flash.display.DisplayObjectContainer;
     import flash.display.Shape;
+    import flash.display.Sprite;
     import flash.display.Graphics;
     import flash.events.TimerEvent;
     import flash.geom.Matrix;
@@ -18,7 +19,8 @@ package jp.maaash.contextfreeart {
 
         private var queue :Array;
         private var compiled :Object;
-        private var container :DisplayObjectContainer;
+        private var container :Sprite;
+        private var background :Sprite;
         private var isRendering :Boolean = false;
         private var maxThreads :int = 1000;
         private var tickTimer :Timer;
@@ -31,8 +33,11 @@ package jp.maaash.contextfreeart {
 		}
 
         public function render( _compiled :Object, _container :DisplayObjectContainer ) :void {
-            compiled  = _compiled;
-            container = _container;
+            compiled   = _compiled;
+            background = new Sprite;
+            _container.addChild( background );
+            container  = new Sprite;
+            _container.addChild( container );
 
             if ( ! queue ) { queue = new Array; }
 
@@ -46,50 +51,47 @@ package jp.maaash.contextfreeart {
 
         public function tick( e :TimerEvent = null ) :void {
 
-            if( queue.length > 0 ){
+            //while ( queue.length > 0 ) {
+            if ( queue.length > 0 ) {
                 isRendering = true;
 
                 var concurrent :int = Math.min( queue.length - 1, maxThreads );
 
-                logger("[tick]concurrent: "+concurrent);
-      
                 for ( var i :int=0; i <= concurrent; i++ ) {
                     var args :Array = queue.shift();
                     drawRule.apply( null, args );
                 }
-
+                center();
             }
 
-            center();
         }
 
         private function center() :void {
-            // if the image exceeds the visible frame, transform image
-            if ( container.width > width || container.height > height ) {
 
-                var rect :Rectangle = container.getRect( container );
+            var rect :Rectangle = container.getRect( container );
 
-                // resize
-                centeringScale    = Math.min( width / rect.width, height / rect.height );
-                centeringMatrix.a = centeringMatrix.d = centeringScale;
+            // resize
+            centeringScale    = Math.min( width / rect.width, height / rect.height ) * 0.9;
+            centeringMatrix.a = centeringMatrix.d = centeringScale;
 
-                // centering
-                centeringMatrix.tx         = width /2 - (rect.left + rect.right ) * centeringScale/2;
-                centeringMatrix.ty         = height/2 - (rect.top  + rect.bottom) * centeringScale/2;
-                container.transform.matrix = centeringMatrix;
+            // centering
+            centeringMatrix.tx         = width /2 - (rect.left + rect.right ) / 2 * centeringScale;
+            centeringMatrix.ty         = height/2 - (rect.top  + rect.bottom) / 2 * centeringScale;
 
-                //logger("[center]mtx,rect,container: ",centeringMatrix,rect,container);
-            }
+            container.transform.matrix = centeringMatrix;
+
+            //logger("[center]mtx,rect,container: ",centeringMatrix,rect,container);
         }
 
         private function draw() :void {
             var ruleName :String = compiled.startshape;
-            var foregroundColor :Object = { h: 0, s: 0, b: 0, a: 1 };
+            var foregroundColor :Color = new Color;
+
             drawRule( ruleName, new Matrix, foregroundColor );
         }
 
-        private function drawRule( ruleName :String, mtx :Matrix, color :Object, priority :Number = 0 ) :void {
-            //logger("[drawRule]mtx: ",mtx);
+        private function drawRule( ruleName :String, mtx :Matrix, color :Color, priority :Number = 0 ) :void {
+            //logger("[drawRule]ruleName: "+ruleName+" mtx: ",mtx);
 
             // When things get too small, we can stop rendering.
             // Too small, in this case, means less than a pixel.
@@ -129,7 +131,7 @@ package jp.maaash.contextfreeart {
             return shape;
         }
 
-        private function drawShape( shape :Object, mtx :Matrix, color :Object, priority :Number = 0 ) :void {
+        private function drawShape( shape :Object, mtx :Matrix, color :Color, priority :Number = 0 ) :void {
 
             //logger("[drawShape]shape: ",shape, mtx );
 
@@ -139,7 +141,7 @@ package jp.maaash.contextfreeart {
 
                 var localTransform :Matrix = mtx.clone();
                 localTransform             = adjustTransform( adj, localTransform );
-                var localColor :Object     = adjustColor( adj, color );
+                var localColor :Color     = adjustColor( adj, color );
 
                 switch( adj.name ){
                     case "CIRCLE":
@@ -166,41 +168,36 @@ package jp.maaash.contextfreeart {
 
         }
 
-        private function drawCIRCLE( transform :Matrix, color :Object ) :void {
+        private function drawCIRCLE( transform :Matrix, color :Color ) :void {
             var sh :Shape = new Shape;
-            sh.graphics.beginFill.apply( null, colorToRgba( color ) );
-            //g.lineStyle( 1, 0x000000 );
+            sh.graphics.beginFill.apply( null, colorToRgba(color) );
             sh.graphics.drawCircle( 0, 0, globalScale * 0.5 );
             sh.transform.matrix = transform;
 
             container.addChild( sh );
         }
 
-        private function drawSQUARE( transform :Matrix, color :Object ) :void {
+        private function drawSQUARE( transform :Matrix, color :Color ) :void {
             var sh :Shape = new Shape;
             sh.graphics.beginFill.apply( null, colorToRgba( color ) );
-            //g.lineStyle( 1, 0x000000 );
             sh.graphics.drawRect( - globalScale * 0.5, - globalScale * 0.5, globalScale, globalScale );
-
             sh.transform.matrix = transform;
 
             container.addChild( sh );
         }
 
-        private function drawTRIANGLE( transform :Matrix, color :Object ) :void {
+        private function drawTRIANGLE( transform :Matrix, color :Color ) :void {
             var sh :Shape = new Shape;
             sh.graphics.beginFill.apply( null, colorToRgba( color ) );
-            //g.lineStyle( 1, 0x000000 );
 
             // 1,2,sqrt(3)
             sh.graphics.drawTriangles(
-                            Vector.<Number>([
-                                             -globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
-                                             +globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
-                                             0,                  - Math.sqrt(3) * globalScale / 3]),
-                            Vector.<int>([0,1,2])
-                            );
-
+                                      Vector.<Number>([
+                                                       -globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
+                                                       +globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
+                                                       0,                  - Math.sqrt(3) * globalScale / 3]),
+                                      Vector.<int>([0,1,2])
+                                      );
             sh.transform.matrix = transform;
 
             container.addChild( sh );
@@ -209,12 +206,18 @@ package jp.maaash.contextfreeart {
         private function drawBackground() :void {
             if ( compiled.background ) {
                 var colorAdj :Adjustment = compiled.background;
-                var backgroundColor :Object = { h:0, s:0, b:1, a:1 };
-                var color :Object = adjustColor( colorAdj, backgroundColor );
+                var backgroundColor :Color = new Color;
+                backgroundColor.b = 1; // { h:0, s:0, b:1, a:1 };
 
-                var sh :Shape = new Shape;
-                //gr.beginFill( );
-                sh.graphics.drawRect( 0, 0, width, height );
+                var color :Color = adjustColor( colorAdj, backgroundColor );
+                var color_alpha :Array = colorToRgba( color );
+
+                logger("[drawBackground]color: ",color, backgroundColor,color_alpha);
+
+                var bg :Shape = new Shape;
+                bg.graphics.beginFill( color_alpha[0], color_alpha[1] );
+                bg.graphics.drawRect( 0, 0, width, height );
+                background.addChild( bg );
             }
         }
 
@@ -268,7 +271,7 @@ package jp.maaash.contextfreeart {
             return mtx;
         }
 
-        private function colorToRgba( color :Object ) :Array {
+        private function colorToRgba( color :Color ) :Array {
             return hsl2rgb( color.h, color.s, color.b, color.a );
         }
 
@@ -333,26 +336,39 @@ package jp.maaash.contextfreeart {
         }
 
         // hsba to hsba
-        private function adjustColor( adjs :Adjustment, color :Object ) :Object {
+        private function adjustColor( adjs :Adjustment, color :Color ) :Color {
             // See http://www.contextfreeart.org/mediawiki/index.php/Shape_adjustments
-            var newColor :Object = { h: color.h, s: color.s, b: color.b, a: color.a };
+            var newColor :Color = new Color;
+            newColor.h = color.h;
+            newColor.s = color.s;
+            newColor.b = color.b;
+            newColor.a = color.a;
 
             // Add num to the drawing hue value, modulo 360 
             newColor.h += adjs.hue;
             newColor.h %= 360;
 
-            var adj :Object = {};
-            adj.s = adjs.saturation;
-            adj.b = adjs.brightness;
-            adj.a = adjs.alpha;
-
             // If adj<0 then change the drawing [blah] adj% toward 0.
             // If adj>0 then change the drawing [blah] adj% toward 1. 
-            for( var key :String in adj ) {
-                if( adj[key] > 0 ){
-                    newColor[key] += adj[key] * (1-color[key]);
+            if ( adjs.saturation != 0 ) {
+                if( adjs.saturation > 0 ){
+                    newColor.s += adjs.saturation * (1-color.s);
                 } else {
-                    newColor[key] += adj[key] * color[key];
+                    newColor.s += adjs.saturation * color.s;
+                }
+            }
+            if ( adjs.brightness != 0 ) {
+                if( adjs.brightness > 0 ){
+                    newColor.b += adjs.brightness * (1-color.b);
+                } else {
+                    newColor.b += adjs.brightness * color.b;
+                }
+            }
+            if ( adjs.alpha != 0 ) {
+                if( adjs.alpha > 0 ){
+                    newColor.a += adjs.alpha * (1-color.a);
+                } else {
+                    newColor.a += adjs.alpha * color.a;
                 }
             }
             
