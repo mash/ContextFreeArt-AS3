@@ -1,0 +1,18 @@
+startshape WHOLE
+background{ b -1 }
+
+rule WHOLE {
+     QUAD { x -0.5 y -0.5 }
+     QUAD { x  0.5 y -0.5 }
+     QUAD { x  0.5 y  0.5 }
+     QUAD { x -0.5 y  0.5 }
+}
+
+rule QUAD {
+     SQUARE { s 0.8 b 1}
+}
+rule QUAD 5 {
+     WHOLE { s 0.45 r 2 }
+}
+rule QUAD 0.5 {
+}

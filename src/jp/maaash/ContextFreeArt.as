@@ -4,15 +4,10 @@ package jp.maaash {
     import jp.maaash.contextfreeart.Compiler;
     import jp.maaash.contextfreeart.Renderer;
 
-    import flash.sampler.*;
-
     public class ContextFreeArt {
         private var renderer :Renderer;
 
         public function ContextFreeArt( cfdg_text :String, container :DisplayObjectContainer ) {
-
-            startSampling();
-
             var t :Tokenizer = new Tokenizer;
             var tokens :Array = t.tokenize( cfdg_text );
 
@@ -24,12 +19,6 @@ package jp.maaash {
             renderer = new Renderer( container.width, container.height );
             renderer.clearQueue();
             renderer.render( compiled, container );
-
-            pauseSampling();
-
-            var samples :Object = getSamples();
-            logger( "samples: ",samples);
-
         }
 
         public function tick() :void {

@@ -6,9 +6,9 @@ package {
     import flash.net.URLLoader;
     import flash.net.URLRequest;
 
-	public class Tree extends Sprite{
+	public class CfdgLoader extends Sprite{
 
-		public function Tree(){
+		public function CfdgLoader(){
 
             var loader :URLLoader = new URLLoader;
             var req    :URLRequest = new URLRequest( '/tree.cfdg' );

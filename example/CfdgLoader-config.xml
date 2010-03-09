@@ -10,7 +10,7 @@
 <!-- 			<path-element>/home/homepage/work/Wonderfl/swc/as3corelib-.92.1/lib</path-element> -->
 <!--         </library-path> -->
 	</compiler>
-	<output>Tree.swf</output>
+	<output>CfdgLoader.swf</output>
 	<default-size>
 		<width>640</width>
 		<height>480</height>
