@@ -380,7 +380,7 @@ package jp.maaash.contextfreeart {
         }
 
 		private function logger(... args) :void {
-			if ( 0 ) {
+			if ( 1 ) {
 				return; 
 			}
 			log.apply(null, (new Array("[Renderer]", this)).concat(args));

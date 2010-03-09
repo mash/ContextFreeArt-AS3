@@ -16,11 +16,19 @@ package {
             txt.width  = 400;
             txt.height = 460;
             var btn :PushButton = new PushButton( this, 0, 460, 'render', function() :void {
+                cleanup();
+
                 var cfdg :String = txt.text;
-                new ContextFreeArt( cfdg, container );
+                container.addChild( new ContextFreeArt( cfdg ) );
             });
             btn.width  = 400;
             btn.height = 20;
 		}
+
+        private function cleanup() :void {
+            while( container.numChildren ) {
+                container.removeChildAt( 0 );
+            }
+        }
 	}
 }

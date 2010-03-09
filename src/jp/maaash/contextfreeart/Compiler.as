@@ -54,7 +54,7 @@ package jp.maaash.contextfreeart {
         private var stateShape :Shape;
 
 		private function logger(... args) :void {
-			if ( 0 ) { 
+			if ( 1 ) { 
 				return; 
 			}
 			log.apply(null, (new Array("[compiler]", this)).concat(args));

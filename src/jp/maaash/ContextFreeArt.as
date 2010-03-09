@@ -1,13 +1,13 @@
 package jp.maaash {
-    import flash.display.DisplayObjectContainer;
+    import flash.display.Sprite;
     import jp.maaash.contextfreeart.Tokenizer;
     import jp.maaash.contextfreeart.Compiler;
     import jp.maaash.contextfreeart.Renderer;
 
-    public class ContextFreeArt {
+    public class ContextFreeArt extends Sprite {
         private var renderer :Renderer;
 
-        public function ContextFreeArt( cfdg_text :String, container :DisplayObjectContainer ) {
+        public function ContextFreeArt( cfdg_text :String, width :Number = 640, height :Number = 480 ) {
             var t :Tokenizer = new Tokenizer;
             var tokens :Array = t.tokenize( cfdg_text );
 
@@ -16,9 +16,9 @@ package jp.maaash {
 
             logger("compiled: ",compiled);
 
-            renderer = new Renderer( container.width, container.height );
+            renderer = new Renderer( width, height );
             renderer.clearQueue();
-            renderer.render( compiled, container );
+            renderer.render( compiled, this );
         }
 
         public function tick() :void {
@@ -26,7 +26,7 @@ package jp.maaash {
         }
 
 		private function logger(... args) :void {
-			if ( 0 ) {
+			if ( 1 ) {
 				return; 
 			}
 			log.apply(null, (new Array("[ContextFreeArt]", this)).concat(args));
