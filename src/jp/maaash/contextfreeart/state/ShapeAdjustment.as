@@ -2,11 +2,11 @@ package jp.maaash.contextfreeart.state {
     import jp.maaash.contextfreeart.Compiler;
     import jp.maaash.contextfreeart.Adjustment;
 
-	public class Shape extends AbstractArgument {
+	public class ShapeAdjustment extends AbstractArgument {
         private var name :String;
         private var ruleName :String;
 
-		public function Shape( args :Array ) {
+		public function ShapeAdjustment( args :Array ) {
             name     = args[0];
             ruleName = args[1];
 		}

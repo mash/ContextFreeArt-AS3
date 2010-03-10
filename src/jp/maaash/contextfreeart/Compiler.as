@@ -51,7 +51,7 @@ package jp.maaash.contextfreeart {
         private var stateRule :Rule;
         private var stateRuleWeight :RuleWeight;
         private var stateRuleDraw :RuleDraw;
-        private var stateShape :Shape;
+        private var stateShape :ShapeAdjustment;
 
 		private function logger(... args) :void {
 			if ( 1 ) { 

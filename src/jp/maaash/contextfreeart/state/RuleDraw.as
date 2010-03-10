@@ -13,7 +13,7 @@ package jp.maaash.contextfreeart.state {
                 return [ "general" ];
             }
         
-            return [ "shape", token, ruleName ];
+            return [ "shapeAdjustment", token, ruleName ];
         }
 	}
 }
