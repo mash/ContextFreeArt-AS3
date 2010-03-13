@@ -24,6 +24,7 @@ package jp.maaash.contextfreeart {
         private var isRendering :Boolean = false;
         private var maxThreads :int = 1000;
         private var tickTimer :Timer;
+        private var globalMatrix :Matrix;
 
 		public function Renderer( _width :Number = 0, _height :Number = 0 ){
             if ( _width  ) { width  = _width;  }
@@ -40,6 +41,8 @@ package jp.maaash.contextfreeart {
             _container.addChild( container );
 
             if ( ! queue ) { queue = new Array; }
+
+            globalMatrix = new Matrix;
 
             drawBackground();
             draw();
@@ -94,8 +97,8 @@ package jp.maaash.contextfreeart {
             //logger("[drawRule]ruleName: "+ruleName+" mtx: ",mtx);
 
             // When things get too small, we can stop rendering.
-            // Too small, in this case, means less than a pixel.
-            if( Math.abs( mtx.a ) * globalScale * centeringScale < 1 && Math.abs( mtx.b ) * globalScale * centeringScale < 1 ){
+            // Too small, in this case, means less than half a pixel.
+            if( Math.abs( mtx.a ) * globalScale * centeringScale < 0.5 && Math.abs( mtx.b ) * globalScale * centeringScale < 0.5 ){
                 //logger("[drawRule]return");
                 return;
             }
@@ -141,11 +144,14 @@ package jp.maaash.contextfreeart {
 
                 var localTransform :Matrix = mtx.clone();
                 localTransform             = adjustTransform( adj, localTransform );
-                var localColor :Color     = adjustColor( adj, color );
+                var localColor :Color      = adjustColor( adj, color );
+
+                var localMatrix :Matrix = globalMatrix.clone();
+                globalMatrix.concat( localTransform );
 
                 switch( adj.name ){
                     case "CIRCLE":
-                        drawCIRCLE( localTransform, localColor );
+                        drawCIRCLE( globalMatrix, localColor );
                         break;
                         
                     case "SQUARE":
@@ -164,43 +170,74 @@ package jp.maaash.contextfreeart {
                         
                         break;
                 }
+
+                globalMatrix = localMatrix;
+
             }
 
         }
 
-        private function drawCIRCLE( transform :Matrix, color :Color ) :void {
-            var sh :Shape = new Shape;
-            sh.graphics.beginFill.apply( null, colorToRgba(color) );
-            sh.graphics.drawCircle( 0, 0, globalScale * 0.5 );
-            sh.transform.matrix = transform;
+        private const halfScale :Number = globalScale * 0.5;
+        private const _P:Number = 0.7071067811865476;    //Math.cos( Math.PI / 4 )
+        private const _T:Number = 0.41421356237309503;   //Math.tan( Math.PI / 8 )
+        private function drawCIRCLE( mx :Matrix, color :Color ) :void {
+            var g :Graphics = container.graphics;
+            g.beginFill.apply( null, colorToRgba(color) );
 
-            container.addChild( sh );
+            moveTo(  g, mx, + halfScale, 0 );
+            curveTo( g, mx, + halfScale     , + halfScale * _T, + halfScale * _P, + halfScale * _P );
+            curveTo( g, mx, + halfScale * _T, + halfScale     , 0               , + halfScale );
+            curveTo( g, mx, - halfScale * _T, + halfScale     , - halfScale * _P, + halfScale * _P );
+            curveTo( g, mx, - halfScale     , + halfScale * _T, - halfScale     , 0 );
+            curveTo( g, mx, - halfScale     , - halfScale * _T, - halfScale * _P, - halfScale * _P );
+            curveTo( g, mx, - halfScale * _T, - halfScale     , 0               , - halfScale );
+            curveTo( g, mx, + halfScale * _T, - halfScale     , + halfScale * _P, - halfScale * _P );
+            curveTo( g, mx, + halfScale     , - halfScale * _T, + halfScale     , 0 );
+
+            g.endFill();
         }
 
-        private function drawSQUARE( transform :Matrix, color :Color ) :void {
-            var sh :Shape = new Shape;
-            sh.graphics.beginFill.apply( null, colorToRgba( color ) );
-            sh.graphics.drawRect( - globalScale * 0.5, - globalScale * 0.5, globalScale, globalScale );
-            sh.transform.matrix = transform;
+        private function drawSQUARE( mx :Matrix, color :Color ) :void {
+            var g :Graphics = container.graphics;
+            g.beginFill.apply( null, colorToRgba(color) );
 
-            container.addChild( sh );
+            moveTo( g, mx, - halfScale, - halfScale );
+            lineTo( g, mx, + halfScale, - halfScale );
+            lineTo( g, mx, + halfScale, + halfScale );
+            lineTo( g, mx, - halfScale, + halfScale );
+            lineTo( g, mx, - halfScale, - halfScale );
+
+            g.endFill();
         }
 
-        private function drawTRIANGLE( transform :Matrix, color :Color ) :void {
-            var sh :Shape = new Shape;
-            sh.graphics.beginFill.apply( null, colorToRgba( color ) );
+        private const triangley :Number = Math.sqrt(3) * globalScale / 6;
+        private function drawTRIANGLE( mx :Matrix, color :Color ) :void {
+            var g :Graphics = container.graphics;
+            g.beginFill.apply( null, colorToRgba(color) );
 
-            // 1,2,sqrt(3)
-            sh.graphics.drawTriangles(
-                                      Vector.<Number>([
-                                                       -globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
-                                                       +globalScale * 0.5, Math.sqrt(3) * globalScale / 6,
-                                                       0,                  - Math.sqrt(3) * globalScale / 3]),
-                                      Vector.<int>([0,1,2])
-                                      );
-            sh.transform.matrix = transform;
+            moveTo( g, mx, - halfScale, triangley );
+            lineTo( g, mx, + halfScale, triangley );
+            lineTo( g, mx, 0,          -triangley * 2 );
+            lineTo( g, mx, - halfScale, triangley );
 
-            container.addChild( sh );
+            g.endFill();
+        }
+
+        private function moveTo( g :Graphics, mx :Matrix, x :Number, y :Number ) :void {
+            g.moveTo( x * mx.a + y * mx.c + mx.tx,
+                      x * mx.b + y * mx.d + mx.ty );
+        }
+
+        private function lineTo( g :Graphics, mx :Matrix, x :Number, y :Number ) :void {
+            g.lineTo( x * mx.a + y * mx.c + mx.tx,
+                      x * mx.b + y * mx.d + mx.ty );
+        }
+
+        private function curveTo( g :Graphics, mx :Matrix, cx:Number, cy:Number, x:Number, y:Number ):void{
+            g.curveTo( cx * mx.a + cy * mx.c + mx.tx,
+                       cx * mx.b + cy * mx.d + mx.ty,
+                       x * mx.a + y * mx.c + mx.tx,
+                       x * mx.b + y * mx.d + mx.ty );
         }
 
         private function drawBackground() :void {

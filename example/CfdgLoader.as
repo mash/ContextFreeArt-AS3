@@ -20,7 +20,8 @@ package {
 
 		}
         private function start( cfdg :String ) :void {
-            var art :ContextFreeArt = new ContextFreeArt( cfdg, this );
+            var art :ContextFreeArt = new ContextFreeArt( cfdg );
+            addChild( art );
 
             stage.addEventListener( MouseEvent.CLICK, function(ev:MouseEvent) :void {
                 art.tick();
