@@ -1,6 +1,5 @@
 package jp.maaash.contextfreeart {
     import jp.maaash.contextfreeart.state.*;
-    import flash.utils.getDefinitionByName;
 
 	public class Compiler{
         private const keywords :Array = [ "startshape", "rule", "background" ];
@@ -35,23 +34,32 @@ package jp.maaash.contextfreeart {
 
             // uppercase the 1st char
             className = className.substr(0,1).toUpperCase() + className.substr(1);
-            var classObject :Class = getDefinitionByName( "jp.maaash.contextfreeart.state." + className ) as Class;
-
-            if ( state_and_args.length > 0 ) {
-                state = new classObject( state_and_args );
-            }
-            else {
-                state = new classObject;
+            switch( className ) {
+                case "Startshape":
+                    state = new Startshape;
+                    break;
+                case "General":
+                    state = new General;
+                    break;
+                case "Background":
+                    state = new Background;
+                    break;
+                case "Rule":
+                    state = new Rule;
+                    break;
+                case "RuleWeight":
+                    state = new RuleWeight( state_and_args );
+                    break;
+                case "RuleDraw":
+                    state = new RuleDraw( state_and_args );
+                    break;
+                case "ShapeAdjustment":
+                    state = new ShapeAdjustment( state_and_args );
+                    break;
+                default:
+                    throw('unknown className: '+className);
             }
         }
-
-        private var stateGeneral :General;
-        private var stateStartshape :Startshape;
-        private var stateBackground :Background;
-        private var stateRule :Rule;
-        private var stateRuleWeight :RuleWeight;
-        private var stateRuleDraw :RuleDraw;
-        private var stateShape :ShapeAdjustment;
 
 		private function logger(... args) :void {
 			if ( 1 ) { 
